@@ -21,16 +21,15 @@ contract BankAccount is Ownable {
 
     }
 
-    function createBankAccount(uint startingBalance, address _owner) public returns (uint256) {
+    function createBankAccount(address _owner) public {
         // create a new bank account
         Account memory _account = Account({
-            balance: startingBalance
+            balance: 0
         });
         uint256 newAccountId = accounts.push(_account) - 1;
         // 4 billion accounts max.
         require(newAccountId == uint256(uint32(newAccountId)));
         _accountOwnerShipTransfer(0, _owner, newAccountId);
-        return 0;
     }
 
     function _accountOwnerShipTransfer(address _from, address _to, uint256 _tokenId) internal {

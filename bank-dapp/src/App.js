@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, {Component} from 'react'
 import BankAccount from '../build/contracts/BankAccount.json'
 import getWeb3 from './utils/getWeb3'
 
@@ -7,85 +7,134 @@ import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
 
-class App extends Component {
-  constructor(props) {
-    super(props)
-
-    this.state = {
-      balance: 0,
-      web3: null
+class GreetingCustomer extends Component {
+    render(props) {
+        return (
+        <div>
+            <h1>You have:</h1>
+            <p>{this.state.balance}</p>
+        </div>
+        );
     }
-  }
+}
 
-  componentWillMount() {
-    // Get network provider and web3 instance.
-    // See utils/getWeb3 for more info.
+class GreetingGuest extends Component {
+    render() {
+        return (
+            <div>
+                <h1>You dont have an account in this Bank. Go away.</h1>
+                <button className="createAccount" onClick={() => this.props.onClick()} >
+                Create
+                </button>
+            </div>            
+        );
+    }
+}
 
-    getWeb3
-    .then(results => {
-      this.setState({
-        web3: results.web3
-      })
+class App extends Component {
+    constructor(props) {
+        super(props)
 
-      // Instantiate contract once web3 provided.
-      this.instantiateContract()
-    })
-    .catch(() => {
-      console.log('Error finding web3.')
-    })
-  }
+        this.state = {
+            hasAccount: false,
+            balance: 0,
+            web3: null
+        }
+    }
 
-  instantiateContract() {
-    /*
-     * SMART CONTRACT EXAMPLE
-     *
-     * Normally these functions would be called in the context of a
-     * state management library, but for convenience I've placed them here.
-     */
+    componentWillMount() {
+        // Get network provider and web3 instance.
+        // See utils/getWeb3 for more info.
 
-    const contract = require('truffle-contract')
-    const bankAccount = contract(BankAccount)
-    bankAccount.setProvider(this.state.web3.currentProvider)
+        getWeb3
+            .then(results => {
+                this.setState({
+                    web3: results.web3
+                })
 
-    // Declaring this for later so we can chain functions on the BankAccount.
-    var bankAccountInstance;
+                // Instantiate contract once web3 provided.
+                this.instantiateContract()
+            })
+            .catch(() => {
+                console.log('Error finding web3.')
+            })
+    }
 
-    // Get accounts.
-    this.state.web3.eth.getAccounts((error, accounts) => {
-      bankAccount.deployed().then((instance) => {
-        bankAccountInstance = instance;
+    instantiateContract() {
 
-        // Stores a given value, 5 by default.
-        return bankAccountInstance.getBalance(accounts[0]);
-      }).then((result) => {
-        // Update state with the result.
-        return this.setState({ balance: result.c[0] });
-      })
-    })
-  }
+        const contract = require('truffle-contract')
+        const bankAccount = contract(BankAccount)
+        bankAccount.setProvider(this.state.web3.currentProvider)
 
-  render() {
-    return (
-      <div className="App">
-        <nav className="navbar pure-menu pure-menu-horizontal">
-            <a href="#" className="pure-menu-heading pure-menu-link">Truffle Box</a>
-        </nav>
+        // Declaring this for later so we can chain functions on the BankAccount.
+        var bankAccountInstance;
 
-        <main className="container">
-          <div className="pure-g">
-            <div className="pure-u-1-1">
-              <h1>Good to Go!</h1>
-              <p>Your Truffle Box is installed and ready.</p>
-              <h2>Smart Contract Example</h2>
-              <p>If your contracts compiled and migrated successfully, below will show a stored value of 5 (by default).</p>
-              <p>Try changing the value stored on <strong>line 59</strong> of App.js.</p>
-              <p>The stored value is: {this.state.balance}</p>
+        // Get accounts.
+        this.state.web3.eth.getAccounts((error, accounts) => {
+            bankAccount.deployed().then((instance) => {
+                bankAccountInstance = instance;
+
+                // Stores a given value, 5 by default.
+                return bankAccountInstance.getBalance(accounts[0], {from: accounts[0]});
+            }).then((result) => {
+                console.log(result);
+                // Update state with the result.
+                return this.setState({balance: result.c[0]});
+            })
+        })
+    }
+
+    renderGreeting() {
+        if (this.state.hasAccount) {
+            return <GreetingCustomer />
+        }
+        return <GreetingGuest 
+        onClick={() => this.createAccount()}
+        />;
+    }
+
+    createAccount() {
+        this.state.web3.eth.getAccounts((error, accounts) => {
+            const contract = require('truffle-contract')
+            const bankAccount = contract(BankAccount)
+            bankAccount.setProvider(this.state.web3.currentProvider)
+
+            var bankAccountInstance;
+
+            this.state.web3.eth.getAccounts((error, accounts) => {
+                bankAccount.deployed().then((instance) => {
+                    bankAccountInstance = instance;    
+                    return bankAccountInstance.createBankAccount(
+                        accounts[0],
+                        {from: accounts[0]}
+                    );
+                }).then((result) => {
+                    console.log(result); // todo: attach to event
+                    // Update state with the result.
+                    return this.setState({hasAccount: true});
+                })
+                
+            })
+        })
+    }
+
+    render() {
+        return (
+            <div className="App">
+                <nav className="navbar pure-menu pure-menu-horizontal">
+                    <a href="#" className="pure-menu-heading pure-menu-link">Truffle Box</a>
+                </nav>
+
+                <main className="container">
+                    <div className="pure-g">
+                        <div className="pure-u-1-1">                            
+                            {this.renderGreeting()}
+                        </div>
+                    </div>
+                </main>
             </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+        );
+    }
 }
 
 export default App
